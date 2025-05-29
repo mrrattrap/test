@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>跑步机实验</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+      font-size: 2rem;
+      margin-top: 20vh;
+    }
+    .hidden { display: none; }
+    button {
+      font-size: 1.5rem;
+      padding: 10px 20px;
+      margin: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="start">
+    <button onclick="startExperiment()">开始实验</button>
+  </div>
+
+  <div id="task" class="hidden">请找出目标信息</div>
+  <div id="stimulus" class="hidden"></div>
+
+  <div id="question" class="hidden">
+    <div id="question-text">心率 > 80?</div>
+    <button onclick="submitAnswer('是')">是</button>
+    <button onclick="submitAnswer('否')">否</button>
+  </div>
+
+  <!-- 用于后台提交数据 -->
+  <iframe name="hidden_iframe" style="display:none;"></iframe>
+  <form id="googleForm" target="hidden_iframe"
+    action="https://docs.google.com/forms/d/1phohRZ9OhkG4d8-A36ALZrknh-q65b8p7wNOmbMVTKU/formResponse"
+    method="POST" class="hidden">
+
+    <input name="entry.1535048437" id="stimulusInput">
+    <input name="entry.2088121790" id="responseInput">
+    <input name="entry.77804743" id="reactionTimeInput">
+
+  </form>
+
+  <script>
+    let currentStimulus = {};
+    let startTime = 0;
+
+    function startExperiment() {
+      document.getElementById("start").style.display = "none";
+      document.getElementById("task").style.display = "block";
+
+      setTimeout(() => {
+        document.getElementById("task").style.display = "none";
+        showStimulus();
+      }, 1000);
+    }
+
+    function showStimulus() {
+      const data = generateStimulus();
+      currentStimulus = data;
+      document.getElementById("stimulus").innerHTML =
+        `TIME: ${data.time} <br> HEART RATE: ${data.hr} <br> SPEED: ${data.speed}`;
+      document.getElementById("stimulus").style.display = "block";
+
+      startTime = Date.now();
+
+      setTimeout(() => {
+        document.getElementById("stimulus").style.display = "none";
+        document.getElementById("question").style.display = "block";
+      }, 2000);
+    }
+
+    function generateStimulus() {
+      return {
+        time: (Math.random() * 10).toFixed(2),
+        hr: Math.floor(60 + Math.random() * 60),
+        speed: (3 + Math.random() * 5).toFixed(1)
+      };
+    }
+
+    function submitAnswer(answer) {
+      const rt = Date.now() - startTime;
+      const stim = JSON.stringify(currentStimulus);
+
+      document.getElementById("stimulusInput").value = stim;
+      document.getElementById("responseInput").value = answer;
+      document.getElementById("reactionTimeInput").value = rt;
+
+      document.getElementById("googleForm").submit();
+
+      document.getElementById("question").style.display = "none";
+      document.getElementById("start").style.display = "block";
+    }
+  </script>
+
+</body>
+</html>
