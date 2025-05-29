@@ -1,103 +1,219 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>跑步机实验</title>
+  <title>认知实验</title>
   <style>
-    body {
-      background-color: black;
-      color: white;
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #191919;
+      color: #ffffff;
       font-family: sans-serif;
+      overflow: hidden;
+      font-weight: bold;
+    }
+    .page {
+      width: 1194px;
+      height: 834px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 64px;
       text-align: center;
-      font-size: 2rem;
-      margin-top: 20vh;
+      cursor: pointer;
     }
     .hidden { display: none; }
-    button {
-      font-size: 1.5rem;
-      padding: 10px 20px;
-      margin: 1rem;
+    .stimulus-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      width: 878px;
+      height: 478px;
+      font-size: 64px;
+      background-color: #191919;
+    }
+    .grid-item {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    .item-icon {
+      width: 54px;
+      height: 54px;
+      margin-bottom: 6px;
+    }
+    .item-label {
+      font-size: 36px;
+      color: #fff;
+      font-weight: normal; /* 不加粗 */
+      margin-bottom: 0;     /* 去掉和数字之间的间隔 */
+    }
+    .item-value {
+      font-size: 48px;
+      color: #fff;
+      font-weight: normal; /* 不加粗 */
+      margin-top: 0;
+    }
+    .start-box {
+      width: 318px;
+      height: 125px;
+      background-color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .start-text {
+      font-size: 64px;
+      font-weight: bold;
+      color: #000000;
+      text-align: center;
+      transform: translateY(-4px);
+    }
+    .question-buttons {
+      display: flex;
+      justify-content: space-around;
+      width: 100%;
+      font-size: 64px;
+    }
+    .question-buttons > div {
+      width: 50%;
+      padding: 50px 0;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .question-buttons > div:hover {
+      background-color: #333;
     }
   </style>
 </head>
 <body>
-
-  <div id="start">
-    <button onclick="startExperiment()">开始实验</button>
+  <div id="page1" class="page" onclick="nextPage(2)">
+    <div class="start-box">
+      <div class="start-text">START</div>
+    </div>
   </div>
-
-  <div id="task" class="hidden">请找出目标信息</div>
-  <div id="stimulus" class="hidden"></div>
-
-  <div id="question" class="hidden">
-    <div id="question-text">心率 > 80?</div>
-    <button onclick="submitAnswer('是')">是</button>
-    <button onclick="submitAnswer('否')">否</button>
+  <div id="page2" class="page hidden" onclick="nextPage(3)">Please find out the heart rate<br>and record the value.</div>
+  <div id="page3" class="page hidden">+</div>
+  <div id="page4" class="page hidden">
+    <div class="stimulus-grid" id="stimulus"></div>
   </div>
-
-  <!-- 用于后台提交数据 -->
-  <iframe name="hidden_iframe" style="display:none;"></iframe>
-  <form id="googleForm" target="hidden_iframe"
-    action="https://docs.google.com/forms/d/1phohRZ9OhkG4d8-A36ALZrknh-q65b8p7wNOmbMVTKU/formResponse"
-    method="POST" class="hidden">
-
-    <input name="entry.1535048437" id="stimulusInput">
-    <input name="entry.2088121790" id="responseInput">
-    <input name="entry.77804743" id="reactionTimeInput">
-
-  </form>
+  <div id="page5" class="page hidden">
+    <div>
+      <div style="font-size: 80px; margin-bottom: 20px;">HEART RATE > 80?</div>
+      <div class="question-buttons">
+        <div onclick="nextPage(6)">YES</div>
+        <div onclick="nextPage(6)">NO</div>
+      </div>
+    </div>
+  </div>
+  <div id="page6" class="page hidden">+</div>
+  <div id="page7" class="page hidden" onclick="nextPage(1)">END</div>
 
   <script>
-    let currentStimulus = {};
-    let startTime = 0;
+  let selectedLabel = '';
+  let comparisonValue = 0;
+  let labelMap = {
+    "TIME": { min: 10, max: 99 },
+    "CALORIE": { min: 30, max: 99 },
+    "SLOPE": { min: 10, max: 40 },
+    "DISTANCE": { min: 10, max: 99 },
+    "HEART RATE": { min: 50, max: 99 },
+    "SPEED": { min: 10, max: 40 }
+  };
 
-    function startExperiment() {
-      document.getElementById("start").style.display = "none";
-      document.getElementById("task").style.display = "block";
+  function nextPage(n) {
+    for (let i = 1; i <= 7; i++) {
+      document.getElementById(`page${i}`).classList.add('hidden');
+    }
+    document.getElementById(`page${n}`).classList.remove('hidden');
 
-      setTimeout(() => {
-        document.getElementById("task").style.display = "none";
-        showStimulus();
-      }, 1000);
+    if (n === 2) {
+      // 随机选一个 label
+      const labels = Object.keys(labelMap);
+      selectedLabel = labels[Math.floor(Math.random() * labels.length)];
+      document.getElementById("page2").innerHTML = `Please find out the <br>${selectedLabel}<br>and record the value.`;
     }
 
-    function showStimulus() {
-      const data = generateStimulus();
-      currentStimulus = data;
-      document.getElementById("stimulus").innerHTML =
-        `TIME: ${data.time} <br> HEART RATE: ${data.hr} <br> SPEED: ${data.speed}`;
-      document.getElementById("stimulus").style.display = "block";
-
-      startTime = Date.now();
-
-      setTimeout(() => {
-        document.getElementById("stimulus").style.display = "none";
-        document.getElementById("question").style.display = "block";
-      }, 2000);
+    if (n === 3) {
+      setTimeout(() => nextPage(4), 500);
     }
-
-    function generateStimulus() {
-      return {
-        time: (Math.random() * 10).toFixed(2),
-        hr: Math.floor(60 + Math.random() * 60),
-        speed: (3 + Math.random() * 5).toFixed(1)
-      };
+    if (n === 4) {
+      generateStimulus();
+      setTimeout(() => nextPage(5), 5000);
     }
+    if (n === 5) {
+      // 在对应范围内随机生成一个比较值
+      const range = labelMap[selectedLabel];
+      const low = range.min;
+      const high = range.max;
+      comparisonValue = Math.floor(low + Math.random() * (high - low + 1));
 
-    function submitAnswer(answer) {
-      const rt = Date.now() - startTime;
-      const stim = JSON.stringify(currentStimulus);
-
-      document.getElementById("stimulusInput").value = stim;
-      document.getElementById("responseInput").value = answer;
-      document.getElementById("reactionTimeInput").value = rt;
-
-      document.getElementById("googleForm").submit();
-
-      document.getElementById("question").style.display = "none";
-      document.getElementById("start").style.display = "block";
+      document.querySelector("#page5 div > div").innerHTML = `${selectedLabel} > ${comparisonValue}?`;
     }
+    if (n === 6) {
+      setTimeout(() => nextPage(7), 500);
+    }
+  }
+
+  function generateStimulus() {
+    const container = document.getElementById("stimulus");
+    container.innerHTML = '';
+
+    const items = [
+      { label: "TIME", value: rand(10, 99) },
+      { label: "CALORIE", value: rand(30, 99) },
+      { label: "SLOPE", value: rand(10, 40) },
+      { label: "DISTANCE", value: rand(10, 99) },
+      { label: "HEART RATE", value: rand(50, 99) },
+      { label: "SPEED", value: rand(10, 40) }
+    ];
+
+    shuffleArray(items);
+
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'grid-item';
+
+      const icon = document.createElement('img');
+      icon.className = 'item-icon';
+      icon.src = `assets/${item.label.replace(/\s/g, '_').toLowerCase()}.png`; // 如 assets/heart_rate.png
+
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'item-label';
+      labelDiv.textContent = item.label;
+
+      const valueDiv = document.createElement('div');
+      valueDiv.className = 'item-value';
+      valueDiv.textContent = item.value;
+
+      div.appendChild(icon);
+      div.appendChild(labelDiv);
+      div.appendChild(valueDiv);
+      container.appendChild(div);
+    });
+  }
+
+  function rand(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
   </script>
-
 </body>
 </html>
