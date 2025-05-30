@@ -46,6 +46,7 @@
       align-items: center;
       padding: 10px;
       box-sizing: border-box;
+      text-align: center;
     }
     .item-icon {
       width: 54px;
@@ -111,8 +112,8 @@
     <div>
       <div style="font-size: 80px; margin-bottom: 20px;">HEART RATE > 80?</div>
       <div class="question-buttons">
-        <div onclick="nextPage(6)">YES</div>
-        <div onclick="nextPage(6)">NO</div>
+        <div onclick="handleAnswer(true)">YES</div>
+        <div onclick="handleAnswer(false)">NO</div>
       </div>
     </div>
   </div>
@@ -122,6 +123,10 @@
   <script>
   let selectedLabel = '';
   let comparisonValue = 0;
+  let layoutType = 0;
+  let startTime = 0;
+  let currentItems = []; // 用于存储当前刺激项
+
   let labelMap = {
     "TIME": { min: 10, max: 99 },
     "CALORIE": { min: 30, max: 99 },
@@ -157,6 +162,7 @@
       const low = range.min;
       const high = range.max;
       comparisonValue = Math.floor(low + Math.random() * (high - low + 1));
+      startTime = Date.now();
 
       document.querySelector("#page5 div > div").innerHTML = `${selectedLabel} > ${comparisonValue}?`;
     }
@@ -169,7 +175,8 @@
     const container = document.getElementById("stimulus");
     container.innerHTML = '';
 
-    const items = [
+    // 生成刺激项并存储到 currentItems
+    currentItems = [
       { label: "TIME", value: rand(10, 99) },
       { label: "CALORIE", value: rand(30, 99) },
       { label: "SLOPE", value: rand(10, 40) },
@@ -178,26 +185,44 @@
       { label: "SPEED", value: rand(10, 40) }
     ];
 
-    shuffleArray(items);
+    // 随机布局类型
+    layoutType = Math.floor(Math.random() * 3); // 0: icon+text+value, 1: icon+value, 2: text+value
 
-    items.forEach(item => {
+    currentItems.forEach(item => {
       const div = document.createElement('div');
       div.className = 'grid-item';
-
+        
+      // 图标元素（保持原路径不变）
       const icon = document.createElement('img');
-      icon.className = 'item-icon';
-      icon.src = `assets/${item.label.replace(/\s/g, '_').toLowerCase()}.png`; // 如 assets/heart_rate.png
+      icon.src = `assets/${item.label.replace(/\s/g, '_').toLowerCase()}.png`;
+      icon.style.width = '40px';
+      icon.style.height = '40px';
+      icon.style.marginBottom = '6px';
 
+      // 文本元素
       const labelDiv = document.createElement('div');
       labelDiv.className = 'item-label';
+      labelDiv.style.fontWeight = 'normal';
       labelDiv.textContent = item.label;
 
+      // 数字元素
       const valueDiv = document.createElement('div');
       valueDiv.className = 'item-value';
       valueDiv.textContent = item.value;
 
-      div.appendChild(icon);
-      div.appendChild(labelDiv);
+      // 构建不同布局
+      if (layoutType === 0) {
+        // 图标 + 文本 + 数字
+        div.appendChild(icon);
+        div.appendChild(labelDiv);
+      } else if (layoutType === 1) {
+        // 图标 + 数字
+        div.appendChild(icon);
+      } else if (layoutType === 2) {
+        // 文本 + 数字
+        div.appendChild(labelDiv);
+      }
+
       div.appendChild(valueDiv);
       container.appendChild(div);
     });
@@ -214,6 +239,78 @@
     }
   }
 
+  function handleAnswer(userAnswer) {
+    if (!startTime) {
+      console.error("响应时间未正确初始化");
+      return;
+    }
+    
+    const correctAnswer = currentItems.find(i => i.label === selectedLabel).value > comparisonValue;
+    const isCorrect = userAnswer === correctAnswer ? "正确" : "错误";
+    const rt = Date.now() - startTime;
+
+    // 判断当前 layout 是否含 icon / text
+    const layoutTypeText = layoutType === 0 || layoutType === 2 ? "有" : "无";
+    const layoutTypeIcon = layoutType === 0 || layoutType === 1 ? "有" : "无";
+
+    console.log({
+      size: "大",
+      icon: layoutTypeIcon,
+      text: layoutTypeText,
+      question: selectedLabel,
+      response: isCorrect,
+      rt: rt
+    });
+
+    submitToGoogleForm({
+      size: "大",
+      icon: layoutTypeIcon,
+      text: layoutTypeText,
+      question: selectedLabel,
+      response: isCorrect,
+      rt: rt
+    });
+
+    nextPage(6);
+  }
+
+  function submitToGoogleForm(data) {
+    // 由于跨域限制，使用 fetch API 可能无法正常提交表单
+    // 这里提供一个替代方案：打开一个隐藏的 iframe 来提交表单
+    console.log("提交数据:", data);
+    
+    // 创建一个隐藏的表单
+    const form = document.createElement('form');
+    form.action = "https://docs.google.com/forms/d/1phohRZ9OhkG4d8-A36ALZrknh-q65b8p7wNOmbMVTKU/formResponse";
+    form.method = "POST";
+    form.target = "hidden_iframe";
+    form.style.display = "none";
+    
+    // 添加表单字段（使用示例 entry ID，需要替换为实际 ID）
+    for (const [key, value] of Object.entries(data)) {
+      const input = document.createElement('input');
+      input.type = "hidden";
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    }
+    
+    // 创建隐藏的 iframe
+    const iframe = document.createElement('iframe');
+    iframe.name = "hidden_iframe";
+    iframe.style.display = "none";
+    
+    // 添加到文档中并提交表单
+    document.body.appendChild(iframe);
+    document.body.appendChild(form);
+    form.submit();
+    
+    // 清理
+    setTimeout(() => {
+      document.body.removeChild(form);
+      document.body.removeChild(iframe);
+    }, 1000);
+  }
   </script>
 </body>
 </html>
