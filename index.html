@@ -95,6 +95,18 @@
     .question-buttons > div:hover {
       background-color: #333;
     }
+    #status-message {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      background-color: rgba(0,0,0,0.7);
+      color: white;
+      border-radius: 5px;
+      font-size: 16px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -119,6 +131,8 @@
   </div>
   <div id="page6" class="page hidden">+</div>
   <div id="page7" class="page hidden" onclick="nextPage(1)">END</div>
+  
+  <div id="status-message"></div>
 
   <script>
   let selectedLabel = '';
@@ -126,6 +140,14 @@
   let layoutType = 0;
   let startTime = 0;
   let currentItems = []; // 用于存储当前刺激项
+  let formEntryIds = {
+    size: "entry.643700084",
+    icon: "entry.1302501854",
+    text: "entry.228986556",
+    question: "entry.616944039",
+    response: "entry.493747991",
+    rt: "entry.616045542"
+  };
 
   let labelMap = {
     "TIME": { min: 10, max: 99 },
@@ -187,6 +209,9 @@
 
     // 随机布局类型
     layoutType = Math.floor(Math.random() * 3); // 0: icon+text+value, 1: icon+value, 2: text+value
+    
+    // 随机打乱项目顺序
+    shuffleArray(currentItems);
 
     currentItems.forEach(item => {
       const div = document.createElement('div');
@@ -232,6 +257,7 @@
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
+  // Fisher-Yates 洗牌算法
   function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -241,7 +267,7 @@
 
   function handleAnswer(userAnswer) {
     if (!startTime) {
-      console.error("响应时间未正确初始化");
+      showStatus("错误：响应时间未正确初始化", "error");
       return;
     }
     
@@ -262,6 +288,7 @@
       rt: rt
     });
 
+    showStatus("正在提交数据...", "info");
     submitToGoogleForm({
       size: "大",
       icon: layoutTypeIcon,
@@ -275,10 +302,49 @@
   }
 
   function submitToGoogleForm(data) {
-    // 由于跨域限制，使用 fetch API 可能无法正常提交表单
-    // 这里提供一个替代方案：打开一个隐藏的 iframe 来提交表单
-    console.log("提交数据:", data);
-    
+    // 先尝试使用 fetch API 提交
+    fetchWithRetry(data)
+      .catch(error => {
+        console.error("Fetch 提交失败，尝试使用表单提交:", error);
+        showStatus("尝试备用提交方法...", "warning");
+        // 回退到表单提交方法
+        submitViaForm(data);
+      });
+  }
+
+  async function fetchWithRetry(data, retries = 3) {
+    const formData = new FormData();
+    for (const [key, value] of Object.entries(data)) {
+      formData.append(formEntryIds[key], value);
+    }
+
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch("https://docs.google.com/forms/d/1phohRZ9OhkG4d8-A36ALZrknh-q65b8p7wNOmbMVTKU/formResponse", {
+          method: "POST",
+          body: formData,
+          mode: "no-cors"
+        });
+        
+        if (response.ok) {
+          showStatus("数据提交成功！", "success");
+          console.log("数据提交成功");
+          return;
+        } else {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } catch (error) {
+        console.error(`尝试 ${i+1}/${retries} 失败:`, error);
+        if (i === retries - 1) {
+          throw error;
+        }
+        // 重试前等待一段时间
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      }
+    }
+  }
+
+  function submitViaForm(data) {
     // 创建一个隐藏的表单
     const form = document.createElement('form');
     form.action = "https://docs.google.com/forms/d/1phohRZ9OhkG4d8-A36ALZrknh-q65b8p7wNOmbMVTKU/formResponse";
@@ -286,11 +352,11 @@
     form.target = "hidden_iframe";
     form.style.display = "none";
     
-    // 添加表单字段（使用示例 entry ID，需要替换为实际 ID）
+    // 添加表单字段
     for (const [key, value] of Object.entries(data)) {
       const input = document.createElement('input');
       input.type = "hidden";
-      input.name = key;
+      input.name = formEntryIds[key];
       input.value = value;
       form.appendChild(input);
     }
@@ -300,16 +366,63 @@
     iframe.name = "hidden_iframe";
     iframe.style.display = "none";
     
+    // 添加提交成功/失败的事件监听
+    iframe.onload = function() {
+      try {
+        // 检查iframe的内容是否表明提交成功
+        // 注意：由于跨域限制，这里可能无法访问iframe内容
+        showStatus("数据提交成功！", "success");
+        console.log("表单提交成功");
+      } catch (e) {
+        showStatus("数据提交可能未成功，请稍后检查", "warning");
+        console.log("无法确认表单提交状态");
+      }
+      
+      // 清理
+      setTimeout(() => {
+        document.body.removeChild(form);
+        document.body.removeChild(iframe);
+      }, 1000);
+    };
+    
+    iframe.onerror = function() {
+      showStatus("数据提交失败，请重试", "error");
+      console.error("表单提交失败");
+      
+      // 清理
+      setTimeout(() => {
+        document.body.removeChild(form);
+        document.body.removeChild(iframe);
+      }, 1000);
+    };
+    
     // 添加到文档中并提交表单
     document.body.appendChild(iframe);
     document.body.appendChild(form);
     form.submit();
+  }
+
+  function showStatus(message, type = "info") {
+    const statusElement = document.getElementById("status-message");
+    statusElement.textContent = message;
     
-    // 清理
+    // 设置状态类型样式
+    statusElement.className = "status-message";
+    if (type === "success") {
+      statusElement.classList.add("status-success");
+    } else if (type === "error") {
+      statusElement.classList.add("status-error");
+    } else if (type === "warning") {
+      statusElement.classList.add("status-warning");
+    }
+    
+    // 显示消息
+    statusElement.style.display = "block";
+    
+    // 3秒后隐藏
     setTimeout(() => {
-      document.body.removeChild(form);
-      document.body.removeChild(iframe);
-    }, 1000);
+      statusElement.style.display = "none";
+    }, 3000);
   }
   </script>
 </body>
