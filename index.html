@@ -107,6 +107,21 @@
       font-size: 16px;
       display: none;
     }
+    .speed-btn {
+      background-color: white;
+      color: black;
+      font-size: 16px;
+      padding: 10px;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .speed-btn.selected {
+      background-color: black;
+      color: white;
+    }
+
   </style>
 </head>
 <body>
@@ -115,13 +130,15 @@
 
   <div id="dev-panel" onclick="event.stopPropagation()" style="position: absolute; top: 60px; right: 30px; background: #333; padding: 20px; border-radius: 8px; display: none;">
     <div style="margin-bottom: 10px; font-size: 18px;">⚙️ 速度选择</div>
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      <button onclick="event.stopPropagation();setSpeed('低')">低</button>
-      <button onclick="event.stopPropagation();setSpeed('中')">中</button>
-      <button onclick="event.stopPropagation();setSpeed('高')">高</button>
+    <div id="speed-buttons" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+      <button class="speed-btn" data-speed="低" onclick="event.stopPropagation(); setSpeed('低')">低</button>
+      <button class="speed-btn" data-speed="中" onclick="event.stopPropagation(); setSpeed('中')">中</button>
+      <button class="speed-btn" data-speed="高" onclick="event.stopPropagation(); setSpeed('高')">高</button>
     </div>
-    <button onclick="event.stopPropagation();startDevTest()">🧪 遍历实验</button>
-    <div style="margin-top: 10px; font-size: 16px;">当前速度：<span id="current-speed-display">中</span></div>
+    <div style="margin-bottom: 10px; font-size: 18px;">🧪 开发者测试</div>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+      <button onclick="event.stopPropagation();startDevTest()">开始遍历实验</button>
+    </div>
   </div>
 
   <div id="page1" class="page" onclick="nextPage(2)">
@@ -363,17 +380,21 @@
     // 恢复开发者面板原始内容
     const panel = document.getElementById("dev-panel");
     panel.innerHTML = `
-      <div style="margin-bottom: 10px; font-size: 18px;">⚙️ 速度选择</div>
-      <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-        <button onclick="event.stopPropagation(); setSpeed('低')">低</button>
-        <button onclick="event.stopPropagation(); setSpeed('中')">中</button>
-        <button onclick="event.stopPropagation(); setSpeed('高')">高</button>
-      </div>
-      <div style="margin-bottom: 10px; font-size: 18px;">🧪 开发者测试</div>
-      <button onclick="event.stopPropagation(); startDevTest()">开始遍历实验</button>
-      <div style="margin-top: 10px; font-size: 16px;">当前速度：<span id="current-speed-display">${currentSpeed}</span></div>
+    <div style="margin-bottom: 10px; font-size: 18px;">⚙️ 速度选择</div>
+    <div id="speed-buttons" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+      <button class="speed-btn" data-speed="低" onclick="event.stopPropagation(); setSpeed('低')">低</button>
+      <button class="speed-btn" data-speed="中" onclick="event.stopPropagation(); setSpeed('中')">中</button>
+      <button class="speed-btn" data-speed="高" onclick="event.stopPropagation(); setSpeed('高')">高</button>
+    </div>
+    <div style="margin-bottom: 10px; font-size: 18px;">🧪 开发者测试</div>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+      <button onclick="event.stopPropagation();startDevTest()">开始遍历实验</button>
+    </div>
     `;
-
+    
+    // 恢复选中按钮状态
+    setSpeed(currentSpeed);
+    
     nextPage(1);
   }
 
@@ -494,8 +515,17 @@
 
   function setSpeed(speed) {
     currentSpeed = speed;
-    document.getElementById("current-speed-display").textContent = speed;
     showStatus(`速度已设置为 ${speed}`, "info");
+
+    // 更新按钮样式
+    const buttons = document.querySelectorAll(".speed-btn");
+    buttons.forEach(btn => {
+      if (btn.getAttribute("data-speed") === speed) {
+        btn.classList.add("selected");
+      } else {
+        btn.classList.remove("selected");
+      }
+    });
   }
 
   function submitViaForm(data) {
@@ -578,6 +608,11 @@
       statusElement.style.display = "none";
     }, 3000);
   }
+
+  window.onload = function() {
+    setSpeed(currentSpeed); // 默认选中“中”
+  };
+
   </script>
 </body>
 </html>
