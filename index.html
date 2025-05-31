@@ -135,6 +135,8 @@
   <div id="status-message"></div>
 
   <script>
+    let currentSize = '大'; // 可选值：'large' | 'medium' | 'small'
+  let hasSubmitted = false; // 每轮实验只允许提交一次
   let selectedLabel = '';
   let comparisonValue = 0;
   let layoutType = 0;
@@ -164,6 +166,9 @@
     }
     document.getElementById(`page${n}`).classList.remove('hidden');
 
+    if (n === 1) {
+    hasSubmitted = false;
+    }
     if (n === 2) {
       // 随机选一个 label
       const labels = Object.keys(labelMap);
@@ -196,6 +201,9 @@
   function generateStimulus() {
     const container = document.getElementById("stimulus");
     container.innerHTML = '';
+    const sizeOptions = ["大", "中", "小"];
+    currentSize = sizeOptions[Math.floor(Math.random() * sizeOptions.length)];
+
 
     // 生成刺激项并存储到 currentItems
     currentItems = [
@@ -234,6 +242,28 @@
       const valueDiv = document.createElement('div');
       valueDiv.className = 'item-value';
       valueDiv.textContent = item.value;
+      // 根据尺寸调整样式
+      let iconSize, labelFontSize, valueFontSize;
+
+      if (currentSize === "大") {
+        iconSize = 54;
+        labelFontSize = 36;
+        valueFontSize = 48;
+      } else if (currentSize === "中") {
+        iconSize = 42;
+        labelFontSize = 28;
+        valueFontSize = 37;
+      } else {
+        iconSize = 30;
+        labelFontSize = 20;
+        valueFontSize = 27;
+      }
+
+      icon.style.width = `${iconSize}px`;
+      icon.style.height = `${iconSize}px`;
+
+      labelDiv.style.fontSize = `${labelFontSize}px`;
+      valueDiv.style.fontSize = `${valueFontSize}px`;
 
       // 构建不同布局
       if (layoutType === 0) {
@@ -266,6 +296,8 @@
   }
 
   function handleAnswer(userAnswer) {
+    if (hasSubmitted) return; // 防止重复提交
+    hasSubmitted = true;
     if (!startTime) {
       showStatus("错误：响应时间未正确初始化", "error");
       return;
@@ -280,7 +312,7 @@
     const layoutTypeIcon = layoutType === 0 || layoutType === 1 ? "有" : "无";
 
     console.log({
-      size: "大",
+      size: currentSize,
       icon: layoutTypeIcon,
       text: layoutTypeText,
       question: selectedLabel,
@@ -290,7 +322,7 @@
 
     showStatus("正在提交数据...", "info");
     submitToGoogleForm({
-      size: "大",
+      size: currentSize,
       icon: layoutTypeIcon,
       text: layoutTypeText,
       question: selectedLabel,
@@ -318,29 +350,19 @@
       formData.append(formEntryIds[key], value);
     }
 
-    for (let i = 0; i < retries; i++) {
-      try {
-        const response = await fetch("https://docs.google.com/forms/d/1phohRZ9OhkG4d8-A36ALZrknh-q65b8p7wNOmbMVTKU/formResponse", {
-          method: "POST",
-          body: formData,
-          mode: "no-cors"
-        });
-        
-        if (response.ok) {
-          showStatus("数据提交成功！", "success");
-          console.log("数据提交成功");
-          return;
-        } else {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-      } catch (error) {
-        console.error(`尝试 ${i+1}/${retries} 失败:`, error);
-        if (i === retries - 1) {
-          throw error;
-        }
-        // 重试前等待一段时间
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-      }
+    try {
+      await fetch("https://docs.google.com/forms/d/1phohRZ9OhkG4d8-A36ALZrknh-q65b8p7wNOmbMVTKU/formResponse", {
+        method: "POST",
+        body: formData,
+        mode: "no-cors"
+      });
+
+      showStatus("数据提交成功！", "success");
+      console.log("数据提交成功");
+    } catch (error) {
+      console.error("Fetch 提交失败:", error);
+      showStatus("数据提交失败，尝试备用方式...", "warning");
+      submitViaForm(data);
     }
   }
 
