@@ -110,6 +110,20 @@
   </style>
 </head>
 <body>
+  <div id="dev-toggle" style="position: absolute; top: 20px; right: 30px; font-size: 20px; cursor: pointer;
+    "onclick="event.stopPropagation(); toggleDevPanel()">开发者模式</div>
+
+  <div id="dev-panel" onclick="event.stopPropagation()" style="position: absolute; top: 60px; right: 30px; background: #333; padding: 20px; border-radius: 8px; display: none;">
+    <div style="margin-bottom: 10px; font-size: 18px;">⚙️ 速度选择</div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <button onclick="event.stopPropagation();setSpeed('低')">低</button>
+      <button onclick="event.stopPropagation();setSpeed('中')">中</button>
+      <button onclick="event.stopPropagation();setSpeed('高')">高</button>
+    </div>
+    <button onclick="event.stopPropagation();startDevTest()">🧪 遍历实验</button>
+    <div style="margin-top: 10px; font-size: 16px;">当前速度：<span id="current-speed-display">中</span></div>
+  </div>
+
   <div id="page1" class="page" onclick="nextPage(2)">
     <div class="start-box">
       <div class="start-text">START</div>
@@ -135,7 +149,13 @@
   <div id="status-message"></div>
 
   <script>
-    let currentSize = '大'; // 可选值：'large' | 'medium' | 'small'
+
+  let devMode = false;
+  let devTestQueue = [];
+  let devTestIndex = 0;
+
+  let currentSize = '大'; // 可选值：'large' | 'medium' | 'small'
+  let currentSpeed = "中"; // 默认速度
   let hasSubmitted = false; // 每轮实验只允许提交一次
   let selectedLabel = '';
   let comparisonValue = 0;
@@ -143,6 +163,7 @@
   let startTime = 0;
   let currentItems = []; // 用于存储当前刺激项
   let formEntryIds = {
+    speed: "entry.1924378472",
     size: "entry.643700084",
     icon: "entry.1302501854",
     text: "entry.228986556",
@@ -196,9 +217,25 @@
     if (n === 6) {
       setTimeout(() => nextPage(7), 500);
     }
+    if (n === 7) {
+      if (devMode) {
+        addExitButton();
+      }
+    }
+
   }
 
   function generateStimulus() {
+    if (devMode && devTestQueue.length > 0) {
+      const { size, layout } = devTestQueue[devTestIndex];
+      currentSize = size;
+      layoutType = layout;
+    } else {
+      const sizeOptions = ["大", "中", "小"];
+      currentSize = sizeOptions[Math.floor(Math.random() * sizeOptions.length)];
+      layoutType = Math.floor(Math.random() * 3);
+    }
+
     const container = document.getElementById("stimulus");
     container.innerHTML = '';
     const sizeOptions = ["大", "中", "小"];
@@ -295,6 +332,88 @@
     }
   }
 
+  function startDevTest() {
+    devMode = true;
+    devTestQueue = [];
+
+    const sizes = ["大", "中", "小"];
+    const layouts = [0, 1, 2]; // 对应 layoutType
+
+    for (let size of sizes) {
+      for (let layout of layouts) {
+        devTestQueue.push({ size, layout });
+      }
+    }
+
+    devTestIndex = 0;
+    // 替换开发者面板内容为“退出按钮”
+    const panel = document.getElementById("dev-panel");
+    panel.innerHTML = `
+      <div style="font-size: 18px; margin-bottom: 10px;">🧪 正在进行遍历测试</div>
+      <button onclick="exitDevMode()" style="font-size: 16px;">退出开发者模式</button>
+    `;
+
+    runNextDevTest();
+  }
+  function exitDevMode() {
+    devMode = false;
+    devTestQueue = [];
+    devTestIndex = 0;
+
+    // 恢复开发者面板原始内容
+    const panel = document.getElementById("dev-panel");
+    panel.innerHTML = `
+      <div style="margin-bottom: 10px; font-size: 18px;">⚙️ 速度选择</div>
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+        <button onclick="event.stopPropagation(); setSpeed('低')">低</button>
+        <button onclick="event.stopPropagation(); setSpeed('中')">中</button>
+        <button onclick="event.stopPropagation(); setSpeed('高')">高</button>
+      </div>
+      <div style="margin-bottom: 10px; font-size: 18px;">🧪 开发者测试</div>
+      <button onclick="event.stopPropagation(); startDevTest()">开始遍历实验</button>
+      <div style="margin-top: 10px; font-size: 16px;">当前速度：<span id="current-speed-display">${currentSpeed}</span></div>
+    `;
+
+    nextPage(1);
+  }
+
+  function addExitButton() {
+    const page7 = document.getElementById("page7");
+    const exitBtn = document.createElement("div");
+    exitBtn.textContent = "退出开发者模式";
+    exitBtn.style.position = "absolute";
+    exitBtn.style.top = "20px";
+    exitBtn.style.right = "30px";
+    exitBtn.style.fontSize = "20px";
+    exitBtn.style.cursor = "pointer";
+    exitBtn.onclick = () => {
+      devMode = false;
+      devTestQueue = [];
+      devTestIndex = 0;
+      nextPage(1);
+      page7.removeChild(exitBtn);
+    };
+    page7.appendChild(exitBtn);
+
+    // 自动进入下一组
+    setTimeout(() => {
+      page7.removeChild(exitBtn);
+      devTestIndex++;
+      if (devTestIndex < devTestQueue.length) {
+        runNextDevTest();
+      } else {
+        devMode = false;
+        devTestQueue = [];
+        devTestIndex = 0;
+        nextPage(1);
+      }
+    }, 1500); // 等1.5秒切换到下一个
+  }
+
+  function runNextDevTest() {
+    nextPage(2);
+  }
+
   function handleAnswer(userAnswer) {
     if (hasSubmitted) return; // 防止重复提交
     hasSubmitted = true;
@@ -312,6 +431,7 @@
     const layoutTypeIcon = layoutType === 0 || layoutType === 1 ? "有" : "无";
 
     console.log({
+      speed: currentSpeed,
       size: currentSize,
       icon: layoutTypeIcon,
       text: layoutTypeText,
@@ -322,6 +442,7 @@
 
     showStatus("正在提交数据...", "info");
     submitToGoogleForm({
+      speed: currentSpeed,
       size: currentSize,
       icon: layoutTypeIcon,
       text: layoutTypeText,
@@ -364,6 +485,17 @@
       showStatus("数据提交失败，尝试备用方式...", "warning");
       submitViaForm(data);
     }
+  }
+
+  function toggleDevPanel() {
+  const panel = document.getElementById("dev-panel");
+  panel.style.display = panel.style.display === "none" ? "block" : "none";
+  }
+
+  function setSpeed(speed) {
+    currentSpeed = speed;
+    document.getElementById("current-speed-display").textContent = speed;
+    showStatus(`速度已设置为 ${speed}`, "info");
   }
 
   function submitViaForm(data) {
