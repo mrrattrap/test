@@ -16,15 +16,19 @@
       font-weight: bold;
     }
     .page {
-      width: 1194px;
-      height: 834px;
+      width: 100%;
+      max-width: 1194px;
+      height: 100%;
+      max-height: 834px;
+
+      margin: auto;
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      top: 0; bottom: 0; left: 0; right: 0;
+
       display: flex;
       justify-content: center;
       align-items: center;
+
       font-size: 64px;
       text-align: center;
       cursor: pointer;
