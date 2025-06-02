@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>认知实验</title>
   <style>
     html, body {
@@ -141,6 +142,7 @@
     </div>
     <div style="margin-bottom: 10px; font-size: 18px;">🧪 开发者测试</div>
     <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+      <button onclick="event.stopPropagation(); startDemoView()">查看实验种类</button>
       <button onclick="event.stopPropagation();startDevTest()">开始遍历实验</button>
     </div>
   </div>
@@ -166,7 +168,14 @@
   </div>
   <div id="page6" class="page hidden">+</div>
   <div id="page7" class="page hidden" onclick="nextPage(1)">END</div>
-  
+  <div id="page8" class="page hidden">
+    <div style="position: relative; width: 100%;">
+      <div style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); font-size: 40px; cursor: pointer;" onclick="prevDemo()">←</div>
+      <div style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 40px; cursor: pointer;" onclick="nextDemo()">→</div>
+      <div class="stimulus-grid" id="demo-stimulus" style="margin: auto;"></div>
+    </div>
+  </div>
+
   <div id="status-message"></div>
 
   <script>
@@ -193,6 +202,13 @@
     rt: "entry.616045542"
   };
 
+    let demoIndex = 0;
+  const demoCombos = [
+    { layout: 0, size: "大" }, { layout: 0, size: "中" }, { layout: 0, size: "小" },
+    { layout: 1, size: "大" }, { layout: 1, size: "中" }, { layout: 1, size: "小" },
+    { layout: 2, size: "大" }, { layout: 2, size: "中" }, { layout: 2, size: "小" }
+  ];
+
   let labelMap = {
     "TIME": { min: 10, max: 99 },
     "CALORIE": { min: 30, max: 99 },
@@ -203,7 +219,7 @@
   };
 
   function nextPage(n) {
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 1; i <= 8; i++) {
       document.getElementById(`page${i}`).classList.add('hidden');
     }
     document.getElementById(`page${n}`).classList.remove('hidden');
@@ -352,6 +368,19 @@
       [array[i], array[j]] = [array[j], array[i]];
     }
   }
+  
+  function startDemoView() {
+    devMode = true;
+    demoIndex = 0;
+    showDemoStimulus();
+    // 替换开发者面板内容为“退出按钮”
+    const panel = document.getElementById("dev-panel");
+    panel.innerHTML = `
+      <div style="font-size: 18px; margin-bottom: 10px;">🧪 正在查看实验种类</div>
+      <button onclick="exitDevMode()" style="font-size: 16px;">退出开发者模式</button>
+    `;
+    nextPage(8); // 导航到演示页面
+  }
 
   function startDevTest() {
     devMode = true;
@@ -392,6 +421,7 @@
     </div>
     <div style="margin-bottom: 10px; font-size: 18px;">🧪 开发者测试</div>
     <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+      <button onclick="event.stopPropagation();startDemoView()">查看实验类型</button>
       <button onclick="event.stopPropagation();startDevTest()">开始遍历实验</button>
     </div>
     `;
@@ -616,6 +646,78 @@
   window.onload = function() {
     setSpeed(currentSpeed); // 默认选中“中”
   };
+
+
+  function showDemoStimulus() {
+    const combo = demoCombos[demoIndex];
+    const container = document.getElementById("demo-stimulus");
+    container.innerHTML = '';
+
+    const items = [
+      { label: "TIME", value: 88 },
+      { label: "CALORIE", value: 67 },
+      { label: "SLOPE", value: 15 },
+      { label: "DISTANCE", value: 33 },
+      { label: "HEART RATE", value: 78 },
+      { label: "SPEED", value: 25 }
+    ];
+
+    currentSize = combo.size;
+    layoutType = combo.layout;
+
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'grid-item';
+
+      const icon = document.createElement('img');
+      icon.src = `assets/${item.label.replace(/\s/g, '_').toLowerCase()}.png`;
+
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'item-label';
+      labelDiv.textContent = item.label;
+
+      const valueDiv = document.createElement('div');
+      valueDiv.className = 'item-value';
+      valueDiv.textContent = item.value;
+
+      let iconSize, labelFontSize, valueFontSize;
+      if (currentSize === "大") {
+        iconSize = 54; labelFontSize = 36; valueFontSize = 48;
+      } else if (currentSize === "中") {
+        iconSize = 42; labelFontSize = 28; valueFontSize = 37;
+      } else {
+        iconSize = 30; labelFontSize = 20; valueFontSize = 27;
+      }
+
+      icon.style.width = `${iconSize}px`;
+      icon.style.height = `${iconSize}px`;
+      icon.style.marginBottom = '6px';
+      labelDiv.style.fontSize = `${labelFontSize}px`;
+      valueDiv.style.fontSize = `${valueFontSize}px`;
+
+      if (layoutType === 0) {
+        div.appendChild(icon);
+        div.appendChild(labelDiv);
+      } else if (layoutType === 1) {
+        div.appendChild(icon);
+      } else if (layoutType === 2) {
+        div.appendChild(labelDiv);
+      }
+
+      div.appendChild(valueDiv);
+      container.appendChild(div);
+    });
+  }
+
+  function prevDemo() {
+    demoIndex = (demoIndex + demoCombos.length - 1) % demoCombos.length;
+    showDemoStimulus();
+  }
+
+  function nextDemo() {
+    demoIndex = (demoIndex + 1) % demoCombos.length;
+    showDemoStimulus();
+  }
 
   </script>
 </body>
