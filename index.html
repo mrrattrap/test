@@ -126,11 +126,14 @@
       background-color: black;
       color: white;
     }
+     #dev-toggle, #dev-panel {
+      z-index: 10000 !important;
+    }
 
   </style>
 </head>
 <body>
-  <div id="dev-toggle" style="position: absolute; top: 20px; right: 30px; font-size: 20px; cursor: pointer;
+  <div id="dev-toggle" style="position: absolute; top: 20px; right: 30px; font-size: 20px; cursor: pointer;z-index: 10000;
     "onclick="event.stopPropagation(); toggleDevPanel()">开发者模式</div>
 
   <div id="dev-panel" onclick="event.stopPropagation()" style="position: absolute; top: 60px; right: 30px; background: #333; padding: 20px; border-radius: 8px; display: none;">
