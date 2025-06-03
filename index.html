@@ -196,6 +196,23 @@
     </div>
   </div>
 
+  <div id="dev-info-bar" style="
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    font-size: 14px;
+    padding: 6px 12px;
+    display: none;
+    z-index: 10001;
+    text-align: center;
+    font-weight: normal;
+  ">
+    <!-- 内容将动态插入 -->
+  </div>
+  
   <div id="status-message"></div>
 
   <script>
@@ -291,8 +308,18 @@
       localStorage.setItem("page4Duration", customPage4Duration); // ✅ 保存
       showStatus(`page4 停留时间已设置为 ${num} 毫秒`, "info");
     }
+    updateDevInfoBar();
   }
 
+  function updateDevInfoBar() {
+    const bar = document.getElementById("dev-info-bar");
+    if (devMode) {
+      bar.style.display = "block";
+      bar.textContent = `速度：${currentSpeed} ｜ 停留时间：${customPage4Duration}ms ｜ 尺寸：${currentSize}`;
+    } else {
+      bar.style.display = "none";
+    }
+  }
 
 
   function generateStimulus() {
@@ -311,7 +338,6 @@
     const sizeOptions = ["大", "中", "小"];
     currentSize = sizeOptions[Math.floor(Math.random() * sizeOptions.length)];
 
-
     // 生成刺激项并存储到 currentItems
     currentItems = [
       { label: "TIME", value: rand(10, 99) },
@@ -324,7 +350,9 @@
 
     // 随机布局类型
     layoutType = Math.floor(Math.random() * 3); // 0: icon+text+value, 1: icon+value, 2: text+value
-    
+    // 实时显示size
+    updateDevInfoBar();
+
     // 随机打乱项目顺序
     shuffleArray(currentItems);
 
@@ -468,6 +496,8 @@
     setSpeed(currentSpeed);
     
     nextPage(1);
+
+    updateDevInfoBar(); // 退出后隐藏 info bar
   }
 
   function addExitButton() {
@@ -587,6 +617,7 @@
 
   function setSpeed(speed) {
     currentSpeed = speed;
+    localStorage.setItem("speed", speed); // ✅ 保存速度
     showStatus(`速度已设置为 ${speed}`, "info");
 
     // 更新按钮样式
@@ -598,6 +629,7 @@
         btn.classList.remove("selected");
       }
     });
+    updateDevInfoBar();
   }
 
   function submitViaForm(data) {
@@ -682,17 +714,23 @@
   }
 
   window.onload = function() {
-    setSpeed(currentSpeed); // 默认选中“中”
+    // 恢复 page4 停留时间
+    const savedDuration = parseInt(localStorage.getItem("page4Duration"));
+    if (!isNaN(savedDuration)) {
+      customPage4Duration = savedDuration;
+      const input = document.getElementById("page4-duration");
+      if (input) input.value = savedDuration;
+    }
 
-    const saved = parseInt(localStorage.getItem("page4Duration"));
-    if (!isNaN(saved)) {
-      customPage4Duration = saved;
-      const durationInput = document.getElementById("page4-duration");
-      if (durationInput) {
-        durationInput.value = saved;
-      }
+    // ✅ 恢复速度选择
+    const savedSpeed = localStorage.getItem("speed");
+    if (["低", "中", "高"].includes(savedSpeed)) {
+      setSpeed(savedSpeed);
+    } else {
+      setSpeed(currentSpeed); // 默认值
     }
   };
+
 
 
   function showDemoStimulus() {
@@ -767,5 +805,6 @@
   }
 
   </script>
+  
 </body>
 </html>
