@@ -33,6 +33,7 @@
       font-size: 64px;
       text-align: center;
       cursor: pointer;
+      z-index: 0;
     }
     .hidden { display: none; }
     .stimulus-grid {
@@ -111,6 +112,7 @@
       border-radius: 5px;
       font-size: 16px;
       display: none;
+      z-index: 9999;
     }
     .speed-btn {
       background-color: white;
@@ -121,6 +123,7 @@
       cursor: pointer;
       border-radius: 6px;
       transition: background-color 0.2s, color 0.2s;
+      width: 100%;
     }
     .speed-btn.selected {
       background-color: black;
@@ -128,6 +131,16 @@
     }
      #dev-toggle, #dev-panel {
       z-index: 10000 !important;
+    }
+    .dev-btn {
+      background-color: white;
+      color: black;
+      font-size: 16px;
+      padding: 10px;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      width: 100%;
     }
 
   </style>
@@ -145,9 +158,13 @@
     </div>
     <div style="margin-bottom: 10px; font-size: 18px;">🧪 开发者测试</div>
     <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-      <button onclick="event.stopPropagation(); startDemoView()">查看实验种类</button>
-      <button onclick="event.stopPropagation();startDevTest()">开始遍历实验</button>
+      <button class="dev-btn"onclick="event.stopPropagation(); startDemoView()">查看实验种类</button>
+      <button class="dev-btn"onclick="event.stopPropagation();startDevTest()">开始遍历实验</button>
     </div>
+    <div style="margin-bottom: 10px; font-size: 18px;">🕒 停留时间 (ms)</div>
+    <input id="page4-duration" type="number" value="4000" min="100" step="100"
+          style="width: 100%; padding: 5px;"
+          oninput="event.stopPropagation(); updatePage4Duration(this.value)">
   </div>
 
   <div id="page1" class="page" onclick="nextPage(2)">
@@ -182,6 +199,8 @@
   <div id="status-message"></div>
 
   <script>
+
+  let customPage4Duration = 4000; // 默认值
 
   let devMode = false;
   let devTestQueue = [];
@@ -242,7 +261,7 @@
     }
     if (n === 4) {
       generateStimulus();
-      setTimeout(() => nextPage(5), 5000);
+      setTimeout(() => nextPage(5), customPage4Duration);
     }
     if (n === 5) {
       // 在对应范围内随机生成一个比较值
@@ -264,6 +283,17 @@
     }
 
   }
+
+  function updatePage4Duration(value) {
+    const num = parseInt(value);
+    if (!isNaN(num) && num >= 100) {
+      customPage4Duration = num;
+      localStorage.setItem("page4Duration", customPage4Duration); // ✅ 保存
+      showStatus(`page4 停留时间已设置为 ${num} 毫秒`, "info");
+    }
+  }
+
+
 
   function generateStimulus() {
     if (devMode && devTestQueue.length > 0) {
@@ -416,18 +446,23 @@
     // 恢复开发者面板原始内容
     const panel = document.getElementById("dev-panel");
     panel.innerHTML = `
-    <div style="margin-bottom: 10px; font-size: 18px;">⚙️ 速度选择</div>
-    <div id="speed-buttons" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-      <button class="speed-btn" data-speed="低" onclick="event.stopPropagation(); setSpeed('低')">低</button>
-      <button class="speed-btn" data-speed="中" onclick="event.stopPropagation(); setSpeed('中')">中</button>
-      <button class="speed-btn" data-speed="高" onclick="event.stopPropagation(); setSpeed('高')">高</button>
-    </div>
-    <div style="margin-bottom: 10px; font-size: 18px;">🧪 开发者测试</div>
-    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-      <button onclick="event.stopPropagation();startDemoView()">查看实验类型</button>
-      <button onclick="event.stopPropagation();startDevTest()">开始遍历实验</button>
-    </div>
+      <div style="margin-bottom: 10px; font-size: 18px;">⚙️ 速度选择</div>
+      <div id="speed-buttons" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+        <button class="speed-btn" data-speed="低" onclick="event.stopPropagation(); setSpeed('低')">低</button>
+        <button class="speed-btn" data-speed="中" onclick="event.stopPropagation(); setSpeed('中')">中</button>
+        <button class="speed-btn" data-speed="高" onclick="event.stopPropagation(); setSpeed('高')">高</button>
+      </div>
+      <div style="margin-bottom: 10px; font-size: 18px;">🧪 开发者测试</div>
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+        <button onclick="event.stopPropagation(); startDemoView()">查看实验种类</button>
+        <button onclick="event.stopPropagation(); startDevTest()">开始遍历实验</button>
+      </div>
+      <div style="margin-bottom: 10px; font-size: 18px;">🕒 停留时间 (ms)</div>
+      <input id="page4-duration" type="number" value="${customPage4Duration}" min="100" step="100"
+        style="width: 100%; padding: 5px;" 
+        oninput="event.stopPropagation(); updatePage4Duration(this.value)">
     `;
+
     
     // 恢复选中按钮状态
     setSpeed(currentSpeed);
@@ -648,6 +683,15 @@
 
   window.onload = function() {
     setSpeed(currentSpeed); // 默认选中“中”
+
+    const saved = parseInt(localStorage.getItem("page4Duration"));
+    if (!isNaN(saved)) {
+      customPage4Duration = saved;
+      const durationInput = document.getElementById("page4-duration");
+      if (durationInput) {
+        durationInput.value = saved;
+      }
+    }
   };
 
 
