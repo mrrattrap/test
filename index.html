@@ -258,7 +258,7 @@
     "SPEED": { min: 10, max: 40 }
   };
 
-  function nextPage(n) {
+  function nextPage(n, page4RT = null) {
     for (let i = 1; i <= 8; i++) {
       document.getElementById(`page${i}`).classList.add('hidden');
     }
@@ -266,12 +266,13 @@
 
     if (n === 1) {
     hasSubmitted = false;
+    setTimeout(() => nextPage(2), 1000); // 1秒后自动进入 page2
     }
     if (n === 2) {
-      // 随机选一个 label
       const labels = Object.keys(labelMap);
       selectedLabel = labels[Math.floor(Math.random() * labels.length)];
       document.getElementById("page2").innerHTML = `Please find out the <br>${selectedLabel}<br>and record the value.`;
+      setTimeout(() => nextPage(3), customPage4Duration); // page2 停留时间 = duration 设置值
     }
 
     if (n === 3) {
@@ -279,28 +280,33 @@
     }
     if (n === 4) {
       generateStimulus();
-      setTimeout(() => nextPage(5), customPage4Duration);
+      const page4 = document.getElementById("page4");
+      startTime = Date.now();
+      page4.onclick = () => {
+        const rt = Date.now() - startTime;
+        page4.onclick = null; // 防止多次点击
+        nextPage(5, rt);
+      };
     }
     if (n === 5) {
-      // 在对应范围内随机生成一个比较值
+      if (page4RT !== null) {
+        window.page4RT = page4RT;
+      }
       const range = labelMap[selectedLabel];
-      const low = range.min;
-      const high = range.max;
-      comparisonValue = Math.floor(low + Math.random() * (high - low + 1));
-      startTime = Date.now();
-
+      comparisonValue = rand(range.min, range.max);
       document.querySelector("#page5 div > div").innerHTML = `${selectedLabel} > ${comparisonValue}?`;
     }
+
+
     if (n === 6) {
       setTimeout(() => nextPage(7), 500);
     }
     if (n === 7) {
-      if (devMode) {
-        addExitButton();
+      if (devMode) addExitButton();
+      setTimeout(() => nextPage(1), 1000); // 1秒后自动跳转回 page1
       }
     }
 
-  }
 
   function updatePage4Duration(value) {
     const num = parseInt(value);
@@ -547,7 +553,7 @@
     
     const correctAnswer = currentItems.find(i => i.label === selectedLabel).value > comparisonValue;
     const isCorrect = userAnswer === correctAnswer ? "正确" : "错误";
-    const rt = Date.now() - startTime;
+    const rt = window.page4RT || 0;
 
     // 判断当前 layout 是否含 icon / text
     const layoutTypeText = layoutType === 0 || layoutType === 2 ? "有" : "无";
