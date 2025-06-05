@@ -237,6 +237,7 @@
     icon: "entry.1302501854",
     text: "entry.228986556",
     question: "entry.616944039",
+    duration: "entry.1045024006",
     response: "entry.493747991",
     rt: "entry.616045542"
   };
@@ -503,7 +504,6 @@
   function addExitButton() {
     const page7 = document.getElementById("page7");
     const exitBtn = document.createElement("div");
-    exitBtn.textContent = "退出开发者模式";
     exitBtn.style.position = "absolute";
     exitBtn.style.top = "20px";
     exitBtn.style.right = "30px";
@@ -559,6 +559,7 @@
       icon: layoutTypeIcon,
       text: layoutTypeText,
       question: selectedLabel,
+      duration:customPage4Duration,
       response: isCorrect,
       rt: rt
     });
@@ -570,6 +571,7 @@
       icon: layoutTypeIcon,
       text: layoutTypeText,
       question: selectedLabel,
+      duration:customPage4Duration,
       response: isCorrect,
       rt: rt
     });
