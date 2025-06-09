@@ -35,7 +35,16 @@
       cursor: pointer;
       z-index: 0;
     }
-    .hidden { display: none; }
+    .page-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hidden {
+      display: none !important;
+    }
     .stimulus-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -172,7 +181,7 @@
       <div class="start-text">START</div>
     </div>
   </div>
-  <div id="page2" class="page hidden" onclick="nextPage(3)">Please find out the heart rate<br>and record the value.</div>
+  <div id="page2" class="page hidden" > <div id="page2-content" class="page-content"></div></div>
   <div id="page3" class="page hidden">+</div>
   <div id="page4" class="page hidden">
     <div class="stimulus-grid" id="stimulus"></div>
@@ -265,17 +274,58 @@
     document.getElementById(`page${n}`).classList.remove('hidden');
 
     if (n === 1) {
-    hasSubmitted = false;
-    setTimeout(() => nextPage(2), 1000); // 1秒后自动进入 page2
+      hasSubmitted = false;
+      setTimeout(() => nextPage(2), 1000); // 1秒后自动进入 page2
     }
     if (n === 2) {
+      page2.classList.remove('hidden'); // ✅ 确保显式展示
+      page2.style.display = "flex";
+
       const labels = Object.keys(labelMap);
       selectedLabel = labels[Math.floor(Math.random() * labels.length)];
-      document.getElementById("page2").innerHTML = `Please find out the <br>${selectedLabel}<br>and record the value.`;
-      setTimeout(() => nextPage(3), customPage4Duration); // page2 停留时间 = duration 设置值
+
+      const content = document.getElementById("page2-content");
+      content.innerHTML = "";
+
+      // ✅ 设置垂直排列
+      page2.style.display = "flex";
+      page2.style.flexDirection = "column";
+      page2.style.justifyContent = "center";
+      page2.style.alignItems = "center";
+
+      const text1 = document.createElement("div");
+      text1.innerText = "Please find out";
+      text1.style.fontSize = "48px";
+      text1.style.marginBottom = "16px";
+
+      const icon = document.createElement("img");
+      icon.src = `assets/${selectedLabel.replace(/\s/g, '_').toLowerCase()}.png`;
+      icon.style.width = "108px";
+      icon.style.height = "108px";
+      icon.style.marginBottom = "16px";
+
+      const label = document.createElement("div");
+      label.innerText = selectedLabel;
+      label.style.fontSize = "64px";
+      label.style.fontWeight = "bold";
+      label.style.marginBottom = "16px";
+
+      const text2 = document.createElement("div");
+      text2.innerText = "and record the value.";
+      text2.style.fontSize = "48px";
+
+      content.appendChild(text1);
+      content.appendChild(icon);
+      content.appendChild(label);
+      content.appendChild(text2);
+
+
+      setTimeout(() => nextPage(3), customPage4Duration);
     }
 
+
     if (n === 3) {
+      document.getElementById('page2').classList.add('hidden');
       setTimeout(() => nextPage(4), 500);
     }
     if (n === 4) {
